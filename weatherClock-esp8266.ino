@@ -3,8 +3,8 @@
 #include <TimeLib.h>
 #include <TimeAlarms.h> 
 
-char ssid[] = "";  //  your network SSID (name)
-char pass[] = "";       // your network password
+char ssid[] = "";  //  your wif network SSID 
+char pass[] = "";       // your wifi network password
 const char* apiKey = ""; //openweathermap.org
 const char* cityID = ""; //City id for weather
 
