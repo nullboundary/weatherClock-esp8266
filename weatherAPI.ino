@@ -12,8 +12,8 @@ const char* weatherURL = "/data/2.5/weather?units=metric";
  *******************************************************/
 void getWeatherCurrent() {
 
-  String seoulWeatherURL = buildURL(weatherURL, cityID, apiKey);
-  getRequest(weatherServerName, seoulWeatherURL.c_str());
+  String finalWeatherURL = buildURL(weatherURL, cityID, apiKey);
+  getRequest(weatherServerName, finalWeatherURL.c_str());
 
 }
 
@@ -25,8 +25,8 @@ void getWeatherCurrent() {
  *******************************************************/
 void getWeatherForecast() {
 
-  String seoulForecastURL = buildURL(forecastURL, cityID, apiKey);
-  getRequest(weatherServerName, seoulForecastURL.c_str());
+  String finalForecastURL = buildURL(forecastURL, cityID, apiKey);
+  getRequest(weatherServerName, finalForecastURL.c_str());
 
 }
 /*******************************************************
