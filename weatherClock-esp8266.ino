@@ -276,13 +276,13 @@ void getWeather() {
   getWeatherCurrent();
 
   String weatherCond = String(currentWeather);
-  if (weatherCond.length() <= 1) {
+  if (weatherCond.length() < 1) {
     weatherCond = "-";
   }
   Serial.println(weatherCond);
 
   String weatherTemp = String(currentTemp);
-  if (weatherTemp.length() <= 1) {
+  if (weatherTemp.length() < 1) {
     weatherTemp = "-";
   }
   Serial.println(weatherTemp);
