@@ -5,6 +5,9 @@ const char* weatherServerName = "api.openweathermap.org";
 const char* forecastURL = "/data/2.5/forecast?units=metric";
 const char* weatherURL = "/data/2.5/weather?units=metric";
 
+
+
+
 /*******************************************************
 
  getWeatherCurrent
@@ -51,7 +54,7 @@ String buildURL(const char* baseURL, const char* city, const char* appID) {
 
  *******************************************************/
 void getRequest(const char* hostServer, const char* path) {
- 
+
   if ((WiFi.status() == WL_CONNECTED)) {
 
     HTTPClient http;
@@ -80,25 +83,40 @@ void getRequest(const char* hostServer, const char* path) {
               data.trim();
               //Serial.println(data);
               const char* lineChars = data.c_str();
+             
               JsonObject& root = jsonBuffer.parseObject(lineChars);
 
               if (root.success()) {
-                root.prettyPrintTo(Serial);
+                //root.prettyPrintTo(Serial);
+                Serial.println("weather data request sucess");
+
+                JsonObject& main = root["main"];
+                currentTemp = main["temp"];
+                //sprintf(currentTemp, "%d",temp);
+                //currentTemp = String(temp); //main["temp"].asString();
+
+                JsonObject& weather = root["weather"][0];
+                currentWeather = weather["main"];
                 break;
               } else {
                 Serial.println("parse fail");
               }
             }
-
           }
+          delay(0);
         }
+
+        delay(0);
+        Serial.println(ESP.getFreeHeap());
         Serial.println();
         Serial.print("[HTTP] connection closed.\n");
+      } else if (httpCode == -1) {
+        Serial.println("connect rejected?");
       }
 
     } else {
       Serial.print("[HTTP] GET... failed, no connection or no HTTP server\n");
     }
-
+    http.end();
   }
 }

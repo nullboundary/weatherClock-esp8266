@@ -1,26 +1,59 @@
 #include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
-#include <TimeLib.h>
-#include <TimeAlarms.h> 
+#include <time.h>
+#include <Ticker.h>
+#include <SPI.h>
+#include <Pixels_Antialiasing.h>
+#include <Pixels_SPIhw.h>
+#include <Pixels_ILI9341.h>
 
-char ssid[] = "";  //  your wif network SSID 
-char pass[] = "";       // your wifi network password
+char ssid[] = "";  //  your network SSID (name)
+char pass[] = "";       // your network password
 const char* apiKey = ""; //openweathermap.org
-const char* cityID = ""; //City id for weather
+const char* cityID = ""; //cityID
 
-const int timeZone = -1;     // Your time zone
+const int timezone = 9;     //KST
+int dst = 0;
 
-unsigned int localPort = 2390;      // local port to listen for UDP packets
+//char* currentTemp; //string that holds current temperature
+int currentTemp;
+const char* currentWeather; //string that holds current weather condition
 
-IPAddress timeServerIP; // time.nist.gov NTP server address
-const char* ntpServerName = "time.nist.gov";
+Ticker timeTick; //ticker for a repeated 1sec time update
+bool updateTime = false; //check if ticker has fired
 
-const int NTP_PACKET_SIZE = 48; // NTP time stamp is in the first 48 bytes of the message
-byte packetBuffer[ NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets
+Ticker weatherCheck; //ticker for a repeated weather update
+bool updateWeather = false; //check if ticker has fired
 
-WiFiUDP udp; // A UDP instance to let us send and receive packets over UDP
+// Declare which fonts we will be using
+extern uint8_t Roboto72a[];
+extern uint8_t Roboto48a[];
+extern uint8_t Roboto18a[];
 
-time_t prevDisplay = 0; // when the digital clock was displayed
+//Lcd size
+Pixels pxs(240, 320);
+
+//lcd spi defines
+#define TFT_CLK D5
+#define TFT_MOSI D7
+#define TFT_DC D4
+#define TFT_CS D1
+#define TFT_RST D2
+
+struct text { //text render struct
+  bool updated;
+  String str;
+  String oldStr;
+};
+
+text dateText;
+text dayText;
+text timeText;
+text tempText;
+text condText;
+
+
+
+
 
 /*******************************************************
 
@@ -28,15 +61,50 @@ time_t prevDisplay = 0; // when the digital clock was displayed
 
  *******************************************************/
 void setup() {
-  Serial.begin(9600);
-  connectWifi();
-  udp.begin(localPort);
-  Serial.print("Local port: ");
-  Serial.println(udp.localPort());
-  Serial.println("waiting for sync");
-  setSyncProvider(getNtpTime);
 
-  Alarm.timerRepeat(15, Repeats);            // timer for every 15 seconds    
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
+  connectWifi();
+
+  configTime(timezone * 3600, dst, "pool.ntp.org", "time.nist.gov"); //configtime is esp8266 function
+
+  Serial.println("\nWaiting for time sync");
+  while (!time(nullptr)) {
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println("");
+
+  Serial.println("Setup LCD");
+  pxs.setSpiPins(TFT_CLK, TFT_MOSI, TFT_CS, TFT_RST, TFT_DC);
+  pxs.init();
+  pxs.setBackground(0, 0, 0);
+  pxs.clear();
+  pxs.setOrientation(LANDSCAPE_FLIP);
+  pxs.enableAntialiasing(true);
+
+  delay(500);
+
+  pxs.setColor(254, 41, 27);
+  pxs.drawRoundRectangle(2, 168, 316, 70, 12); //time rect
+  pxs.drawRoundRectangle(162, 2, 157, 83, 12); //location rect
+  pxs.drawRoundRectangle(162, 85, 157, 83, 12); //weather cond rect
+  pxs.drawRoundRectangle(2, 2, 160, 166, 12); //temp rect
+
+  //initialize text rendering false
+  timeText.updated = false;
+  dateText.updated = false;
+  dayText.updated = false;
+  tempText.updated = false;
+  condText.updated = false;
+
+  delay(500);
+
+  timeTick.attach(1, tick);
+
+  getWeather();
+
+  weatherCheck.attach(360, check);
 }
 
 /*******************************************************
@@ -45,46 +113,135 @@ void setup() {
 
  *******************************************************/
 void loop() {
- if (timeStatus() != timeNotSet) {
-    if (now() != prevDisplay) { //update the display only if time has changed
-      prevDisplay = now();
-      digitalClockDisplay();  
-    }
+
+  if (updateTime) {
+    updateTime = false;
+    clockDisplay();
+  } else if (updateWeather) {
+    updateWeather = false;
+    getWeather();
   }
-  Alarm.delay(0);
+
+  render();
+
+}
+/*******************************************************
+
+ tick - 1 sec clock interval
+
+ *******************************************************/
+void tick() {
+  updateTime = true;
+}
+/*******************************************************
+
+ check - weather update interval
+
+ *******************************************************/
+void check() {
+  updateWeather = true;
+}
+
+/*******************************************************
+
+ render
+
+ *******************************************************/
+void render() {
+
+  //draw time
+  if (timeText.updated) {
+    timeText.updated = false;
+    pxs.setColor(254, 41, 27);
+    pxs.setFont(Roboto48a);
+    int widthOldX = pxs.getTextWidth(timeText.oldStr);
+    pxs.cleanText((pxs.getWidth() - widthOldX) - 15, 179, timeText.oldStr);
+    int widthNewX = pxs.getTextWidth(timeText.str);
+    pxs.print((pxs.getWidth() - widthNewX) - 15, 179, timeText.str);
+  }
+
+  //draw date
+  if (dateText.updated) {
+    dateText.updated = false;
+    pxs.setColor(254, 41, 27);
+    pxs.setFont(Roboto18a);
+    pxs.cleanText(15, 205, dateText.oldStr);
+    pxs.print(15, 205, dateText.str);
+  }
+
+  //draw day
+  if (dayText.updated) {
+    dayText.updated = false;
+    pxs.setColor(254, 41, 27);
+    pxs.setFont(Roboto18a);
+    pxs.cleanText(15, 180, dayText.oldStr);
+    pxs.print(15, 180, dayText.str);
+  }
+
+  //draw temperature
+  if (tempText.updated) {
+    tempText.updated = false;
+    pxs.setColor(110, 23, 20);
+    pxs.fillRoundRectangle(2, 2, 160, 166, 12);
+    pxs.setColor(254, 41, 27);
+    pxs.drawRoundRectangle(2, 2, 160, 166, 12);
+
+    pxs.setColor(0, 0, 0);
+    pxs.setFont(Roboto18a);
+    String tempCStr = "C";
+    pxs.print(132, 98, tempCStr);
+
+    pxs.setFont(Roboto48a);
+    if (currentTemp < 0) { //minus temperatures
+      String tempMinusStr = "-";
+      pxs.print(10, 88, tempMinusStr);
+    }
+
+    pxs.setFont(Roboto72a);
+    int widthTempX = pxs.getTextWidth(tempText.str);
+    //pxs.cleanText(28, 48, tempText.oldStr);
+    pxs.print(80 - widthTempX /2 , 48, tempText.str);
+    //pxs.print(28, 48, tempText.str);
+  }
+
+  //draw weather condition
+  if (condText.updated) {
+    condText.updated = false;
+    pxs.setFont(Roboto18a);
+    pxs.setColor(254, 41, 27);
+    //pxs.drawRoundRectangle(163, 2, 156, 83, 12);
+
+    String locStr = "Seoul"; //Todo: maybe this shouldn't be hardcoded?
+    int widthlocX = pxs.getTextWidth(locStr);
+    pxs.cleanText(241 - widthlocX / 2, 28, locStr);
+    pxs.print(241 - widthlocX / 2, 28, locStr);
+
+    //pxs.drawRoundRectangle(163, 85, 156, 83, 12);
+    int widthOldCondX = pxs.getTextWidth(condText.oldStr);
+    int widthCondX = pxs.getTextWidth(condText.str);
+    pxs.cleanText(241 - widthOldCondX / 2,  112, condText.oldStr);
+    pxs.print(241 - widthCondX / 2, 112, condText.str);
+  }
 
 }
 
 /*******************************************************
 
- digitalClockDisplay
+ clockDisplay
 
  *******************************************************/
-void digitalClockDisplay(){
-  // digital clock display of the time
-  Serial.print(hour());
-  printDigits(minute());
-  printDigits(second());
-  Serial.print(" ");
-  Serial.print(day());
-  Serial.print(".");
-  Serial.print(month());
-  Serial.print(".");
-  Serial.print(year()); 
-  Serial.println(); 
-}
+void clockDisplay() {
 
-/*******************************************************
+  time_t now = time(nullptr);
+  Serial.println(ctime(&now));
 
- printDigits
+  struct tm * timeinfo;
+  timeinfo = localtime (&now);
 
- *******************************************************/
-void printDigits(int digits){
-  // utility for digital clock display: prints preceding colon and leading 0
-  Serial.print(":");
-  if(digits < 10)
-    Serial.print('0');
-  Serial.print(digits);
+  setClockTime(timeinfo);
+  setClockDate(timeinfo);
+  setClockDay(timeinfo);
+
 }
 
 /*******************************************************
@@ -95,6 +252,7 @@ void printDigits(int digits){
 void connectWifi() {
   Serial.print("Connecting to ");
   Serial.println(ssid);
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -110,71 +268,43 @@ void connectWifi() {
 
 /*******************************************************
 
- getNtpTime
+ getWeather
 
  *******************************************************/
-time_t getNtpTime()
-{
-  while (udp.parsePacket() > 0) ; // discard any previously received packets
-  
-  WiFi.hostByName(ntpServerName, timeServerIP); //get a random server from the pool
-  Serial.println("Transmit NTP Request");
-  sendNTPpacket(timeServerIP);
-  uint32_t beginWait = millis();
-  while (millis() - beginWait < 1500) {
-    int size = udp.parsePacket();
-    if (size >= NTP_PACKET_SIZE) {
-      Serial.println("Receive NTP Response");
-      udp.read(packetBuffer, NTP_PACKET_SIZE);  // read packet into the buffer
-      unsigned long secsSince1900;
-      // convert four bytes starting at location 40 to a long integer
-      secsSince1900 =  (unsigned long)packetBuffer[40] << 24;
-      secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
-      secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
-      secsSince1900 |= (unsigned long)packetBuffer[43];
-      return secsSince1900 - 2208988800UL + timeZone * SECS_PER_HOUR;
-    }
+void getWeather() {
+
+  getWeatherCurrent();
+
+  String weatherCond = String(currentWeather);
+  if (weatherCond.length() <= 1) {
+    weatherCond = "-";
   }
-  Serial.println("No NTP Response :-(");
-  return 0; // return 0 if unable to get the time
+  Serial.println(weatherCond);
+
+  String weatherTemp = String(currentTemp);
+  if (weatherTemp.length() <= 1) {
+    weatherTemp = "-";
+  }
+  Serial.println(weatherTemp);
+
+  updateText(weatherCond, condText);
+
+  updateText(weatherTemp, tempText);
+
+
 }
 
 /*******************************************************
 
- sendNTPpacket
-
- send an NTP request to the time server at the given address
+ updateText
 
  *******************************************************/
-void sendNTPpacket(IPAddress &address)
-{
-  // set all bytes in the buffer to 0
-  memset(packetBuffer, 0, NTP_PACKET_SIZE);
-  // Initialize values needed to form NTP request
-  // (see URL above for details on the packets)
-  packetBuffer[0] = 0b11100011;   // LI, Version, Mode
-  packetBuffer[1] = 0;     // Stratum, or type of clock
-  packetBuffer[2] = 6;     // Polling Interval
-  packetBuffer[3] = 0xEC;  // Peer Clock Precision
-  // 8 bytes of zero for Root Delay & Root Dispersion
-  packetBuffer[12]  = 49;
-  packetBuffer[13]  = 0x4E;
-  packetBuffer[14]  = 49;
-  packetBuffer[15]  = 52;
-  // all NTP fields have been given values, now
-  // you can send a packet requesting a timestamp:                 
-  udp.beginPacket(address, 123); //NTP requests are to port 123
-  udp.write(packetBuffer, NTP_PACKET_SIZE);
-  udp.endPacket();
-}
+void updateText(String &newText, struct text &textStruct) {
 
-/*******************************************************
-
- Repeats
-
- *******************************************************/
-void Repeats(){
-  Serial.println("15 second timer");
-  getWeatherCurrent();         
+  if (newText != textStruct.str) {
+    textStruct.oldStr = textStruct.str; //save old str so we can clear it from lcd.
+    textStruct.str = newText;
+    textStruct.updated = true;
+  }
 }
 
