@@ -78,7 +78,6 @@ void getRequest(const char* hostServer, const char* path) {
         while (http.connected()) {
 
           if (stream->available()) {
-            if (stream->find("\n")) {
               String data = stream->readStringUntil('\n');
               data.trim();
               //Serial.println(data);
@@ -100,8 +99,7 @@ void getRequest(const char* hostServer, const char* path) {
                 break;
               } else {
                 Serial.println("parse fail");
-              }
-            }
+              } 
           }
           delay(0);
         }
