@@ -76,11 +76,9 @@ void getRequest(const char* hostServer, const char* path) {
 
         // read all data from server
         while (http.connected()) {
-
           if (stream->available()) {
-              String data = stream->readStringUntil('\n');
+              String data = stream->readStringUntil('\r');
               data.trim();
-              //Serial.println(data);
               const char* lineChars = data.c_str();
              
               JsonObject& root = jsonBuffer.parseObject(lineChars);
@@ -91,6 +89,7 @@ void getRequest(const char* hostServer, const char* path) {
 
                 JsonObject& main = root["main"];
                 currentTemp = main["temp"];
+                currentHumid = main["humidity"];
                 //sprintf(currentTemp, "%d",temp);
                 //currentTemp = String(temp); //main["temp"].asString();
 
@@ -99,7 +98,7 @@ void getRequest(const char* hostServer, const char* path) {
                 break;
               } else {
                 Serial.println("parse fail");
-              } 
+              }
           }
           delay(0);
         }

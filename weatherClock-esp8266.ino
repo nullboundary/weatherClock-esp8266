@@ -9,13 +9,14 @@
 char ssid[] = "";  //  your network SSID (name)
 char pass[] = "";       // your network password
 const char* apiKey = ""; //openweathermap.org
-const char* cityID = ""; //cityID
+const char* cityID = ""; //CityID on openweathermap
 
 const int timezone = 9;     //KST
 int dst = 0;
 
-//char* currentTemp; //string that holds current temperature
-int currentTemp;
+
+int currentTemp; //current temperature
+int currentHumid; //current humidity
 const char* currentWeather; //string that holds current weather condition
 
 Ticker timeTick; //ticker for a repeated 1sec time update
@@ -51,8 +52,19 @@ text timeText;
 text tempText;
 text condText;
 
+RGB bgColor  = RGB(0,0,0);
 
+//red tones
+RGB brightColor  = RGB(254, 41, 27);
+RGB darkColor  = RGB(110, 23, 20);
 
+//blue tones
+//RGB brightColor  = RGB(0,197,169);
+//RGB darkColor  = RGB(16,47,42);
+
+//green tones
+//RGB brightColor  = RGB(117,204,38);
+//RGB darkColor  = RGB(26,89,33);
 
 
 /*******************************************************
@@ -78,14 +90,14 @@ void setup() {
   Serial.println("Setup LCD");
   pxs.setSpiPins(TFT_CLK, TFT_MOSI, TFT_CS, TFT_RST, TFT_DC);
   pxs.init();
-  pxs.setBackground(0, 0, 0);
+  pxs.setBackground(&bgColor);
   pxs.clear();
   pxs.setOrientation(LANDSCAPE_FLIP);
   pxs.enableAntialiasing(true);
 
   delay(500);
 
-  pxs.setColor(254, 41, 27);
+  pxs.setColor(&brightColor);
   pxs.drawRoundRectangle(2, 168, 316, 70, 12); //time rect
   pxs.drawRoundRectangle(162, 2, 157, 83, 12); //location rect
   pxs.drawRoundRectangle(162, 85, 157, 83, 12); //weather cond rect
@@ -152,7 +164,7 @@ void render() {
   //draw time
   if (timeText.updated) {
     timeText.updated = false;
-    pxs.setColor(254, 41, 27);
+    pxs.setColor(&brightColor);
     pxs.setFont(Roboto48a);
     int widthOldX = pxs.getTextWidth(timeText.oldStr);
     pxs.cleanText((pxs.getWidth() - widthOldX) - 15, 179, timeText.oldStr);
@@ -163,7 +175,7 @@ void render() {
   //draw date
   if (dateText.updated) {
     dateText.updated = false;
-    pxs.setColor(254, 41, 27);
+    pxs.setColor(&brightColor);
     pxs.setFont(Roboto18a);
     pxs.cleanText(15, 205, dateText.oldStr);
     pxs.print(15, 205, dateText.str);
@@ -172,7 +184,7 @@ void render() {
   //draw day
   if (dayText.updated) {
     dayText.updated = false;
-    pxs.setColor(254, 41, 27);
+    pxs.setColor(&brightColor);
     pxs.setFont(Roboto18a);
     pxs.cleanText(15, 180, dayText.oldStr);
     pxs.print(15, 180, dayText.str);
@@ -181,12 +193,12 @@ void render() {
   //draw temperature
   if (tempText.updated) {
     tempText.updated = false;
-    pxs.setColor(110, 23, 20);
+    pxs.setColor(&darkColor);
     pxs.fillRoundRectangle(2, 2, 160, 166, 12);
-    pxs.setColor(254, 41, 27);
+    pxs.setColor(&brightColor);
     pxs.drawRoundRectangle(2, 2, 160, 166, 12);
 
-    pxs.setColor(0, 0, 0);
+    pxs.setColor(&bgColor);
     pxs.setFont(Roboto18a);
     String tempCStr = "C";
     pxs.print(132, 98, tempCStr);
@@ -208,7 +220,7 @@ void render() {
   if (condText.updated) {
     condText.updated = false;
     pxs.setFont(Roboto18a);
-    pxs.setColor(254, 41, 27);
+    pxs.setColor(&brightColor);
     //pxs.drawRoundRectangle(163, 2, 156, 83, 12);
 
     String locStr = "Seoul"; //Todo: maybe this shouldn't be hardcoded?
