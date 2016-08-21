@@ -6,17 +6,19 @@
 #include <Pixels_SPIhw.h>
 #include <Pixels_ILI9341.h>
 
-char ssid[] = "";  //  your network SSID (name)
-char pass[] = "";       // your network password
-const char* apiKey = ""; //openweathermap.org
-const char* cityID = ""; //CityID on openweathermap
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>    
 
-const int timezone = 9;     //KST
+const char* apiKey = ""; //openweathermap.org
+const char* cityID = ""; 
+
+const int timezone = 0;   
 int dst = 0;
 
 
 int currentTemp; //current temperature
-int currentHumid; //current humidity
+float currentWindSpeed;
 const char* currentWeather; //string that holds current weather condition
 
 Ticker timeTick; //ticker for a repeated 1sec time update
@@ -51,21 +53,44 @@ text dayText;
 text timeText;
 text tempText;
 text condText;
+text windText;
+bool rectUpdated;
 
 RGB bgColor  = RGB(0,0,0);
 
 //red tones
-RGB brightColor  = RGB(254, 41, 27);
-RGB darkColor  = RGB(110, 23, 20);
+RGB brightRedColor  = RGB(254, 41, 27);
+RGB darkRedColor  = RGB(110, 23, 20);
 
 //blue tones
-//RGB brightColor  = RGB(0,197,169);
-//RGB darkColor  = RGB(16,47,42);
+RGB brightBlueColor  = RGB(0,197,169);
+//RGB darkBlueColor  = RGB(16,47,42);
 
 //green tones
 //RGB brightColor  = RGB(117,204,38);
 //RGB darkColor  = RGB(26,89,33);
 
+//set color tones
+RGB brightColor  = brightRedColor;
+RGB darkColor  = darkRedColor;
+
+/*******************************************************
+
+ configModeCallback
+
+ *******************************************************/
+void configModeCallback (WiFiManager *myWiFiManager) {
+  Serial.println("Entered config mode");
+  Serial.println(WiFi.softAPIP());
+  //if you used auto generated SSID, print it
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+
+   pxs.setColor(&brightColor);
+   pxs.setFont(Roboto18a);
+   pxs.print(15, 25, "Cannot connect to Wifi");
+   pxs.print(15, 66, "Join WeatherClock Wifi AP");
+   pxs.print(15,89, "to configure connection.");
+}
 
 /*******************************************************
 
@@ -76,16 +101,6 @@ void setup() {
 
   Serial.begin(115200);
   Serial.setDebugOutput(true);
-  connectWifi();
-
-  configTime(timezone * 3600, dst, "pool.ntp.org", "time.nist.gov"); //configtime is esp8266 function
-
-  Serial.println("\nWaiting for time sync");
-  while (!time(nullptr)) {
-    Serial.print(".");
-    delay(1000);
-  }
-  Serial.println("");
 
   Serial.println("Setup LCD");
   pxs.setSpiPins(TFT_CLK, TFT_MOSI, TFT_CS, TFT_RST, TFT_DC);
@@ -97,11 +112,27 @@ void setup() {
 
   delay(500);
 
+  WiFiManager wifiManager;
+  //wifiManager.resetSettings(); //for testing
+  wifiManager.setAPCallback(configModeCallback);
+  wifiManager.autoConnect("WeatherClock");
+ 
+  configTime(timezone * 3600, dst, "pool.ntp.org", "time.nist.gov"); //configtime is esp8266 function
+
+  Serial.println("\nWaiting for time sync");
+  while (!time(nullptr)) {
+    Serial.print(".");
+    delay(1000);
+  }
+  Serial.println("");
+  
+  pxs.clear();
   pxs.setColor(&brightColor);
   pxs.drawRoundRectangle(2, 168, 316, 70, 12); //time rect
   pxs.drawRoundRectangle(162, 2, 157, 83, 12); //location rect
   pxs.drawRoundRectangle(162, 85, 157, 83, 12); //weather cond rect
   pxs.drawRoundRectangle(2, 2, 160, 166, 12); //temp rect
+
 
   //initialize text rendering false
   timeText.updated = false;
@@ -109,6 +140,8 @@ void setup() {
   dayText.updated = false;
   tempText.updated = false;
   condText.updated = false;
+  windText.updated = false;
+  rectUpdated = false;
 
   delay(500);
 
@@ -162,7 +195,7 @@ void check() {
 void render() {
 
   //draw time
-  if (timeText.updated) {
+  if (timeText.updated || rectUpdated) {
     timeText.updated = false;
     pxs.setColor(&brightColor);
     pxs.setFont(Roboto48a);
@@ -173,7 +206,7 @@ void render() {
   }
 
   //draw date
-  if (dateText.updated) {
+  if (dateText.updated || rectUpdated) { //update colors for rain
     dateText.updated = false;
     pxs.setColor(&brightColor);
     pxs.setFont(Roboto18a);
@@ -182,7 +215,7 @@ void render() {
   }
 
   //draw day
-  if (dayText.updated) {
+  if (dayText.updated || rectUpdated) {
     dayText.updated = false;
     pxs.setColor(&brightColor);
     pxs.setFont(Roboto18a);
@@ -191,48 +224,67 @@ void render() {
   }
 
   //draw temperature
-  if (tempText.updated) {
+  if (tempText.updated || rectUpdated) {
     tempText.updated = false;
-    pxs.setColor(&darkColor);
-    pxs.fillRoundRectangle(2, 2, 160, 166, 12);
-    pxs.setColor(&brightColor);
-    pxs.drawRoundRectangle(2, 2, 160, 166, 12);
 
-    pxs.setColor(&bgColor);
+    pxs.setColor(&brightColor);
     pxs.setFont(Roboto18a);
     String tempCStr = "C";
-    pxs.print(132, 98, tempCStr);
+    pxs.print(134, 46, tempCStr);
 
     pxs.setFont(Roboto48a);
+    String tempMinusStr = "-";
     if (currentTemp < 0) { //minus temperatures
-      String tempMinusStr = "-";
       pxs.print(10, 88, tempMinusStr);
+    } else {
+      pxs.cleanText(10, 88, tempMinusStr);
     }
 
     pxs.setFont(Roboto72a);
+    int widthOldTempX = pxs.getTextWidth(tempText.oldStr);
     int widthTempX = pxs.getTextWidth(tempText.str);
-    //pxs.cleanText(28, 48, tempText.oldStr);
+    pxs.cleanText(80 - widthOldTempX /2, 48, tempText.oldStr);
     pxs.print(80 - widthTempX /2 , 48, tempText.str);
-    //pxs.print(28, 48, tempText.str);
+    
   }
 
   //draw weather condition
-  if (condText.updated) {
+  if (condText.updated || rectUpdated) {
     condText.updated = false;
     pxs.setFont(Roboto18a);
     pxs.setColor(&brightColor);
-    //pxs.drawRoundRectangle(163, 2, 156, 83, 12);
 
-    String locStr = "Seoul"; //Todo: maybe this shouldn't be hardcoded?
-    int widthlocX = pxs.getTextWidth(locStr);
-    pxs.cleanText(241 - widthlocX / 2, 28, locStr);
-    pxs.print(241 - widthlocX / 2, 28, locStr);
-
-    //pxs.drawRoundRectangle(163, 85, 156, 83, 12);
     int widthOldCondX = pxs.getTextWidth(condText.oldStr);
     int widthCondX = pxs.getTextWidth(condText.str);
     pxs.cleanText(241 - widthOldCondX / 2,  112, condText.oldStr);
     pxs.print(241 - widthCondX / 2, 112, condText.str);
+  }
+
+  if (windText.updated || rectUpdated) {
+    windText.updated = false;
+    pxs.setFont(Roboto18a);
+    pxs.setColor(&brightColor);
+
+    String windLabelStr = "Wind Speed";
+    int labelWidth = pxs.getTextWidth(windLabelStr);
+    pxs.print(241 - labelWidth / 2, 16, windLabelStr);
+
+    int widthOldWind = pxs.getTextWidth(windText.oldStr);
+    int widthWind = pxs.getTextWidth(windText.str);
+    
+    pxs.cleanText(241 - widthOldWind / 2, 42, windText.oldStr);
+    pxs.print(241 - widthWind / 2, 42, windText.str);
+
+  }
+
+  //redraw rectangles usually for color change
+  if (rectUpdated) {
+    rectUpdated = false;
+    pxs.setColor(&brightColor);
+    pxs.drawRoundRectangle(2, 168, 316, 70, 12); //time rect
+    pxs.drawRoundRectangle(162, 2, 157, 83, 12); //location rect
+    pxs.drawRoundRectangle(162, 85, 157, 83, 12); //weather cond rect
+    pxs.drawRoundRectangle(2, 2, 160, 166, 12); //temp rect
   }
 
 }
@@ -255,29 +307,6 @@ void clockDisplay() {
   setClockDay(timeinfo);
 
 }
-
-/*******************************************************
-
- connectWifi
-
- *******************************************************/
-void connectWifi() {
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, pass);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println("");
-
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-}
-
 /*******************************************************
 
  getWeather
@@ -291,6 +320,16 @@ void getWeather() {
   if (weatherCond.length() < 1) {
     weatherCond = "-";
   }
+
+  //set colors to blue if rainy
+  if (rainCond(weatherCond)){
+    brightColor  = brightBlueColor;
+    rectUpdated = true;
+  } else {
+    brightColor  = brightRedColor;
+    rectUpdated = true;
+  }
+  
   Serial.println(weatherCond);
 
   String weatherTemp = String(currentTemp);
@@ -298,12 +337,47 @@ void getWeather() {
     weatherTemp = "-";
   }
   Serial.println(weatherTemp);
+  
+  //convert to km/h
+  float kmhspeed = currentWindSpeed * 3.6;
+  static char outstr[8];
+  dtostrf(kmhspeed,4, 1, outstr);
+  
+  String windSpeed = String(outstr);
+  if (windSpeed.length() < 1) {
+    windSpeed = "-";
+  }
+  windSpeed.concat(" km/h");
+  Serial.println(windSpeed);
 
   updateText(weatherCond, condText);
 
   updateText(weatherTemp, tempText);
 
+  updateText(windSpeed, windText);
 
+
+}
+
+/*******************************************************
+
+ rainCond
+
+ *******************************************************/
+bool rainCond(String &weatherCond) {
+
+  if (weatherCond == "Rain"){
+    return true;
+  } else if (weatherCond == "Drizzle") {
+    return true;
+  } else if (weatherCond == "Thunderstorm") {
+    return true;
+  } else if (weatherCond == "Snow") {
+    return true;
+  }
+
+  return false;
+  
 }
 
 /*******************************************************
@@ -319,4 +393,3 @@ void updateText(String &newText, struct text &textStruct) {
     textStruct.updated = true;
   }
 }
-

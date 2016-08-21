@@ -1,5 +1,6 @@
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
+#include <math.h>
 
 const char* weatherServerName = "api.openweathermap.org";
 const char* forecastURL = "/data/2.5/forecast?units=metric";
@@ -88,11 +89,12 @@ void getRequest(const char* hostServer, const char* path) {
                 Serial.println("weather data request sucess");
 
                 JsonObject& main = root["main"];
-                currentTemp = main["temp"];
-                currentHumid = main["humidity"];
-                //sprintf(currentTemp, "%d",temp);
-                //currentTemp = String(temp); //main["temp"].asString();
-
+                currentTemp = lrint(main.get("temp"));
+                
+                JsonObject& wind = root["wind"];
+                
+                currentWindSpeed = wind.get("speed");
+                
                 JsonObject& weather = root["weather"][0];
                 currentWeather = weather["main"];
                 break;
