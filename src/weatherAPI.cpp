@@ -5,6 +5,7 @@ const char *forecastURL = "/data/2.5/forecast?units=metric";
 const char *weatherURL = "/data/2.5/weather?units=metric";
 const char *apiKey = "";
 const char *cityID = "";
+
 /*******************************************************
 
  getWeatherCurrent
@@ -91,7 +92,7 @@ void getRequest(weather &current, String hostServer, String path)
 
             if (!err)
             {
-              //root.prettyPrintTo(Serial);
+
               Serial.println("weather data request sucess");
 
               JsonObject main = jsonDoc["main"];

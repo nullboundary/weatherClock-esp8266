@@ -26,17 +26,17 @@ void configModeCallback(WiFiManager *myWiFiManager)
   //if you used auto generated SSID, print it
   Serial.println(myWiFiManager->getConfigPortalSSID());
 
-  tft.setTextColor(brightColor, TFT_BLACK); // pxs.setColor(&brightColor);
-  tft.loadFont(LatoRegular28);              //pxs.setFont(Roboto18a);
+  tft.setTextColor(brightColor, TFT_BLACK);
+  tft.loadFont(LatoRegular28);
 
   tft.setCursor(15, 25);
-  tft.print("Cannot connect to Wifi"); //pxs.print(15, 25, "Cannot connect to Wifi");
+  tft.print("Cannot connect to Wifi");
 
   tft.setCursor(15, 66);
-  tft.print("Join WeatherClock Wifi AP"); //pxs.print(15, 66, "Join WeatherClock Wifi AP");
+  tft.print("Join WeatherClock Wifi AP");
 
   tft.setCursor(15, 89);
-  tft.print("to configure connection."); //pxs.print(15, 89, "to configure connection.");
+  tft.print("to configure connection.");
 }
 
 /*******************************************************
@@ -51,7 +51,7 @@ void setup()
   Serial.setDebugOutput(true);
 
   Serial.println("Setup LCD");
-  delay(800);
+  delay(1000);
   tft.begin();
   tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
@@ -63,9 +63,7 @@ void setup()
   wifiManager.setAPCallback(configModeCallback);
   wifiManager.autoConnect("WeatherClock");
 
-  // configTime(timezone * 3600, dst, "pool.ntp.org", "time.nist.gov"); //configtime is esp8266 function
   configTime("PST8PDT,M3.2.0/02:00:00,M11.1.0/02:00:00", "pool.ntp.org", "time.nist.gov");
-  // setenv("TZ", "PST8PDT,M3.2.0/02:00:00,M11.1.0/02:00:00", 1);
 
   Serial.println("\nWaiting for time sync");
   while (!time(nullptr))
@@ -75,12 +73,12 @@ void setup()
   }
   Serial.println("");
 
-  tft.fillScreen(TFT_BLACK); // pxs.clear();
+  tft.fillScreen(TFT_BLACK);
 
-  tft.drawRoundRect(2, 224, 476, 94, 12, brightColor);    //pxs.drawRoundRectangle(2, 168, 316, 70, 12);  //time rect
-  tft.drawRoundRect(242, 2, 237, 112, 12, brightColor);   //pxs.drawRoundRectangle(162, 2, 157, 83, 12);  //location rect
-  tft.drawRoundRect(242, 113, 237, 112, 12, brightColor); // pxs.drawRoundRectangle(162, 85, 157, 83, 12); //weather cond rect
-  tft.drawRoundRect(2, 2, 241, 223, 12, brightColor);     //pxs.drawRoundRectangle(2, 2, 160, 166, 12); //temp rect
+  tft.drawRoundRect(2, 224, 476, 94, 12, brightColor);    //time rect
+  tft.drawRoundRect(242, 2, 237, 112, 12, brightColor);   //location rect
+  tft.drawRoundRect(242, 113, 237, 112, 12, brightColor); //weather cond rect
+  tft.drawRoundRect(2, 2, 241, 223, 12, brightColor);     //temp rect
 
   //initialize text rendering false
   timeText.updated = false;
@@ -153,33 +151,27 @@ void render()
   if (timeText.updated || rectUpdated)
   {
     timeText.updated = false;
-    tft.setTextColor(brightColor, TFT_BLACK); //pxs.setColor(&brightColor);
-    tft.loadFont(LatoRegular72);              // pxs.setFont(Roboto48a);
+    tft.setTextColor(brightColor, TFT_BLACK);
+    tft.loadFont(LatoRegular72);
 
-    int widthOldX = tft.textWidth(timeText.oldStr); //pxs.getTextWidth(timeText.oldStr);
-    // clearText(tft.width(), 245, timeText);
-    // pxs.cleanText((pxs.getWidth() - widthOldX) - 15, 179, timeText.oldStr);
+    int widthOldX = tft.textWidth(timeText.oldStr);
+    int widthNewX = tft.textWidth(timeText.str);
+
     tft.fillRect(tft.width() - widthOldX - 15, 245, widthOldX, tft.fontHeight(), TFT_BLACK);
-    int widthNewX = tft.textWidth(timeText.str); //pxs.getTextWidth(timeText.str);
-    // pxs.print((pxs.getWidth() - widthNewX) - 15, 179, timeText.str);
-    // tft.setCursor(480 - widthNewX - 15, 245);
-    // tft.print(timeText.str);
     tft.drawString(timeText.str, tft.width() - widthNewX - 15, 245);
   }
 
   //draw date
   if (dateText.updated || rectUpdated)
-  { //update colors for rain
+  {
+    //update colors for rain
     dateText.updated = false;
-    // pxs.setColor(&brightColor);
-    // pxs.setFont(Roboto18a);
-    tft.setTextColor(brightColor, TFT_BLACK); //pxs.setColor(&brightColor);
+    tft.setTextColor(brightColor, TFT_BLACK);
     tft.loadFont(LatoRegular28);
+
     int widthOldX = tft.textWidth(dateText.oldStr);
+
     tft.fillRect(15, 278, widthOldX, tft.fontHeight(), TFT_BLACK);
-    // pxs.cleanText(15, 205, dateText.oldStr);
-    // tft.setCursor(15, 278);
-    // tft.print(dateText.str);
     tft.drawString(dateText.str, 15, 278);
   }
 
@@ -187,13 +179,12 @@ void render()
   if (dayText.updated || rectUpdated)
   {
     dayText.updated = false;
-    tft.setTextColor(brightColor, TFT_BLACK); //pxs.setColor(&brightColor);
-    tft.loadFont(LatoRegular28);              //pxs.setFont(Roboto18a);
-    //pxs.cleanText(15, 180, dayText.oldStr);
+    tft.setTextColor(brightColor, TFT_BLACK);
+    tft.loadFont(LatoRegular28);
+
     int widthOldX = tft.textWidth(dayText.oldStr);
+
     tft.fillRect(15, 245, widthOldX, tft.fontHeight(), TFT_BLACK);
-    // tft.setCursor(15, 245);
-    // tft.print(dayText.str);
     tft.drawString(dayText.str, 15, 245);
   }
 
@@ -202,68 +193,56 @@ void render()
   {
     tempText.updated = false;
 
-    tft.setTextColor(brightColor, TFT_BLACK); // pxs.setColor(&brightColor);
-    tft.loadFont(LatoRegular28);              // pxs.setFont(LatoRegular18);
+    tft.setTextColor(brightColor, TFT_BLACK);
+    tft.loadFont(LatoRegular28);
     String tempCStr = "°C";
-    // tft.setCursor(201, 66);
-    // tft.print(tempCStr); //pxs.print(134, 46, tempCStr);
-    tft.drawString(tempCStr, 196, 66);
 
-    tft.loadFont(LatoRegular72); // pxs.setFont(LatoRegular48);
+    tft.drawString(tempCStr, 196, 66);
+    tft.loadFont(LatoRegular72);
+
     String tempMinusStr = "-";
     if (currentWeather.temp < 0)
-    { //minus temperatures
-      // tft.setCursor(15, 122);
-      // tft.print(tempMinusStr); // pxs.print(10, 88, tempMinusStr);
+    {
+      //minus temperatures
       tft.drawString(tempMinusStr, 15, 122);
     }
     else
     {
-      // pxs.cleanText(10, 88, tempMinusStr);
+
       int widthOldX = tft.textWidth(tempMinusStr);
       tft.fillRect(15, 122, widthOldX, tft.fontHeight(), TFT_BLACK);
     }
 
-    // tft.setTextColor(brightColor, TFT_BLACK);
-    tft.loadFont(LatoRegular112); // pxs.setFont(LatoRegular72);
+    tft.loadFont(LatoRegular112);
     int widthOldTempX = tft.textWidth(tempText.oldStr);
-    int widthTempX = tft.textWidth(tempText.str); // pxs.getTextWidth(tempText.str);
-    // pxs.cleanText(80 - widthOldTempX / 2, 48, tempText.oldStr);
-    //tft.setCursor(120 - widthTempX / 2, 69);
-    //tft.print(tempText.str);
-    //ft.setTextSize(2);
-    //tft.drawCentreString(tempText.str, 122, 80, 8);
+    int widthTempX = tft.textWidth(tempText.str);
+
     tft.fillRect(110 - widthTempX / 2, 69, widthOldTempX, tft.fontHeight(), TFT_BLACK);
     tft.drawString(tempText.str, 110 - widthTempX / 2, 69);
-    // pxs.print(80 - widthTempX / 2, 48, tempText.str);
   }
 
   //draw weather condition
   if (condText.updated || rectUpdated)
   {
     condText.updated = false;
-    tft.loadFont(LatoRegular28);              // pxs.setFont(LatoRegular18);
-    tft.setTextColor(brightColor, TFT_BLACK); //pxs.setColor(&brightColor);
+    tft.loadFont(LatoRegular28);
+    tft.setTextColor(brightColor, TFT_BLACK);
 
     int widthOldCondX = tft.textWidth(condText.oldStr);
-    int widthCondX = tft.textWidth(condText.str); //pxs.getTextWidth(condText.str);
-    // pxs.cleanText(241 - widthOldCondX / 2, 112, condText.oldStr);
-    // clearText(241, 112, condText);
+    int widthCondX = tft.textWidth(condText.str);
+
     tft.fillRect(362 - widthCondX / 2, 154, widthOldCondX, tft.fontHeight(), TFT_BLACK);
-    // tft.setCursor(362 - widthCondX / 2, 154);
-    // tft.print(condText.str);
     tft.drawString(condText.str, 362 - widthCondX / 2, 154);
-    // pxs.print(241 - widthCondX / 2, 112, condText.str);
   }
 
   if (windText.updated || rectUpdated)
   {
     windText.updated = false;
-    tft.loadFont(LatoRegular28);              // pxs.setFont(LatoRegular18);
-    tft.setTextColor(brightColor, TFT_BLACK); // pxs.setColor(&brightColor);
+    tft.loadFont(LatoRegular28);
+    tft.setTextColor(brightColor, TFT_BLACK);
 
     int widthOldWind = tft.textWidth(windText.oldStr);
-    int widthWind = tft.textWidth(windText.str); //pxs.getTextWidth(windText.str);
+    int widthWind = tft.textWidth(windText.str);
 
     tft.fillRect(362 - widthOldWind / 2, 61, widthOldWind, tft.fontHeight(), TFT_BLACK);
     tft.drawString(windText.str, 362 - widthWind / 2, 61);
@@ -273,11 +252,11 @@ void render()
   {
 
     windDegText.updated = false;
-    tft.loadFont(LatoRegular28);              // pxs.setFont(LatoRegular18);
-    tft.setTextColor(brightColor, TFT_BLACK); // pxs.setColor(&brightColor);
+    tft.loadFont(LatoRegular28);
+    tft.setTextColor(brightColor, TFT_BLACK);
 
     int widthOldWindDeg = tft.textWidth(windDegText.oldStr);
-    int widthWindDeg = tft.textWidth(windDegText.str); //pxs.getTextWidth(windDegText.str);
+    int widthWindDeg = tft.textWidth(windDegText.str);
 
     tft.fillRect(241 - widthOldWindDeg / 2, 16, widthOldWindDeg, tft.fontHeight(), TFT_BLACK);
     tft.drawString(windDegText.str, 362 - widthWindDeg / 2, 26);
@@ -287,10 +266,10 @@ void render()
   if (rectUpdated)
   {
     rectUpdated = false;
-    tft.drawRoundRect(2, 224, 476, 94, 12, brightColor);    //pxs.drawRoundRectangle(2, 168, 316, 70, 12);  //time rect
-    tft.drawRoundRect(242, 2, 237, 112, 12, brightColor);   //pxs.drawRoundRectangle(162, 2, 157, 83, 12);  //location rect
-    tft.drawRoundRect(242, 113, 237, 112, 12, brightColor); // pxs.drawRoundRectangle(162, 85, 157, 83, 12); //weather cond rect
-    tft.drawRoundRect(2, 2, 241, 223, 12, brightColor);     //pxs.drawRoundRectangle(2, 2, 160, 166, 12); //temp rect
+    tft.drawRoundRect(2, 224, 476, 94, 12, brightColor);    //time rect
+    tft.drawRoundRect(242, 2, 237, 112, 12, brightColor);   //location rect
+    tft.drawRoundRect(242, 113, 237, 112, 12, brightColor); ///weather cond rect
+    tft.drawRoundRect(2, 2, 241, 223, 12, brightColor);     //temp rect
   }
 }
 
@@ -339,23 +318,23 @@ void getWeather()
   //set colors to blue if rainy
   if (rainCond(weatherCond))
   {
-    brightColor = TFT_BLUE; //brightBlueColor;
+    brightColor = TFT_BLUE;
     rectUpdated = true;
   }
   else
   {
-    brightColor = TFT_WHITE; //brightRedColor;
+    brightColor = TFT_WHITE;
     rectUpdated = true;
   }
 
-  Serial.println(weatherCond);
+  // Serial.println(weatherCond);
 
   String weatherTemp = String(currentWeather.temp);
   if (weatherTemp.length() < 1)
   {
     weatherTemp = "-";
   }
-  Serial.println(weatherTemp);
+  // Serial.println(weatherTemp);
 
   //convert to km/h
   float kmhspeed = currentWeather.windSpeed * 3.6;
@@ -368,7 +347,7 @@ void getWeather()
     windSpeed = "-";
   }
   windSpeed.concat(" km/h");
-  Serial.println(windSpeed);
+  // Serial.println(windSpeed);
 
   String windDir = getWindDirection(currentWeather.windDegree);
 

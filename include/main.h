@@ -7,9 +7,6 @@
 #include <SPI.h>
 
 #include <TFT_eSPI.h>
-// #include <Pixels_Antialiasing.h>
-// #include <Pixels_SPIhw.h>
-// #include <Pixels_ILI9341.h>
 
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
@@ -19,11 +16,6 @@
 #include "weatherAPI.h"
 #include "timeSaver.h"
 #include "fonts.h"
-
-// Declare which fonts we will be using
-// extern uint8_t Roboto72a[]; //96
-// extern uint8_t Roboto48a[]; //64
-// extern uint8_t Roboto18a[]; //24
 
 //colors
 //red tones

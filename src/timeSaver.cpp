@@ -122,9 +122,6 @@ void setClockTime(String &dest, struct tm *timeinfo)
   displayTime += String(minuteBuffer);
 
   dest = displayTime;
-
-  //Serial.println(displayTime);
-  //updateText(displayTime, timeText);
 }
 /*******************************************************
 
@@ -142,8 +139,6 @@ void setClockDate(String &dest, struct tm *timeinfo)
   displayDate += year(timeinfo->tm_year);
 
   dest = displayDate;
-  //Serial.println(displayDate);
-  //updateText(displayDate, dateText);
 }
 /*******************************************************
 
@@ -159,6 +154,4 @@ void setClockDay(String &dest, struct tm *timeinfo)
   displayDay += String(dayBuffer);
 
   dest = displayDay;
-  //Serial.println(displayDay);
-  //updateText(displayDay, dayText);
 }
