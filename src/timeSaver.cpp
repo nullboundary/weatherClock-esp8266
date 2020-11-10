@@ -1,10 +1,12 @@
+#include "timeSaver.h"
 
 /*******************************************************
 
  year
 
  *******************************************************/
-int year(int tm_year) {
+int year(int tm_year)
+{
   return tm_year + 1900;
 }
 
@@ -13,7 +15,8 @@ int year(int tm_year) {
  month
 
  *******************************************************/
-int month(int tm_month) {
+int month(int tm_month)
+{
   return tm_month + 1;
 }
 
@@ -22,16 +25,19 @@ int month(int tm_month) {
  minute
 
  *******************************************************/
-void minute(int tm_minute, char buffer[]) {
+void minute(int tm_minute, char buffer[])
+{
 
   buffer[0] = 0;
 
-  if (tm_minute < 10) {
+  if (tm_minute < 10)
+  {
     sprintf(buffer, "0%d", tm_minute);
-  } else {
+  }
+  else
+  {
     sprintf(buffer, "%d", tm_minute);
   }
-
 }
 
 /*******************************************************
@@ -39,14 +45,20 @@ void minute(int tm_minute, char buffer[]) {
  hour12
 
  *******************************************************/
-int hour12(int tm_hour) { // the hour for the given time in 12 hour format
+int hour12(int tm_hour)
+{ // the hour for the given time in 12 hour format
 
-  if ( tm_hour == 0 ) {
+  if (tm_hour == 0)
+  {
     return 12; // 12 midnight
-  } else if ( tm_hour  > 12) {
-    return tm_hour - 12 ;
-  } else {
-    return tm_hour ;
+  }
+  else if (tm_hour > 12)
+  {
+    return tm_hour - 12;
+  }
+  else
+  {
+    return tm_hour;
   }
 }
 
@@ -55,39 +67,41 @@ int hour12(int tm_hour) { // the hour for the given time in 12 hour format
  day
 
  *******************************************************/
-void day(int dayNum, char buffer[]) {
+void day(int dayNum, char buffer[])
+{
   buffer[0] = 0;
-  switch (dayNum) {
-    case 0:
-      sprintf(buffer, "Sunday");
+  switch (dayNum)
+  {
+  case 0:
+    sprintf(buffer, "Sunday");
 
-      break;
-    case 1:
-      sprintf(buffer, "Monday");
+    break;
+  case 1:
+    sprintf(buffer, "Monday");
 
-      break;
-    case 2:
-      sprintf(buffer, "Tuesday");
+    break;
+  case 2:
+    sprintf(buffer, "Tuesday");
 
-      break;
-    case 3:
-      sprintf(buffer, "Wednesday");
+    break;
+  case 3:
+    sprintf(buffer, "Wednesday");
 
-      break;
-    case 4:
-      sprintf(buffer, "Thursday");
+    break;
+  case 4:
+    sprintf(buffer, "Thursday");
 
-      break;
-    case 5:
-      sprintf(buffer, "Friday");
+    break;
+  case 5:
+    sprintf(buffer, "Friday");
 
-      break;
-    case 6:
-      sprintf(buffer, "Saturday");
+    break;
+  case 6:
+    sprintf(buffer, "Saturday");
 
-      break;
-    default:
-      sprintf(buffer, "-");
+    break;
+  default:
+    sprintf(buffer, "-");
   }
 }
 
@@ -96,7 +110,8 @@ void day(int dayNum, char buffer[]) {
  setClockTime
 
  *******************************************************/
-void setClockTime(struct tm  *timeinfo) {
+void setClockTime(String &dest, struct tm *timeinfo)
+{
 
   String displayTime;
   displayTime += hour12(timeinfo->tm_hour);
@@ -106,16 +121,18 @@ void setClockTime(struct tm  *timeinfo) {
   minute(timeinfo->tm_min, minuteBuffer);
   displayTime += String(minuteBuffer);
 
-  //Serial.println(displayTime);
-  updateText(displayTime, timeText);
+  dest = displayTime;
 
+  //Serial.println(displayTime);
+  //updateText(displayTime, timeText);
 }
 /*******************************************************
 
  setClockDate
 
  *******************************************************/
-void setClockDate(struct tm  *timeinfo) {
+void setClockDate(String &dest, struct tm *timeinfo)
+{
 
   String displayDate;
   displayDate += month(timeinfo->tm_mon);
@@ -124,26 +141,24 @@ void setClockDate(struct tm  *timeinfo) {
   displayDate += "-";
   displayDate += year(timeinfo->tm_year);
 
+  dest = displayDate;
   //Serial.println(displayDate);
-  updateText(displayDate, dateText);
-
+  //updateText(displayDate, dateText);
 }
 /*******************************************************
 
  setClockDay
 
  *******************************************************/
-void setClockDay(struct tm  *timeinfo) {
+void setClockDay(String &dest, struct tm *timeinfo)
+{
 
   String displayDay;
   char dayBuffer[11];
   day(timeinfo->tm_wday, dayBuffer);
   displayDay += String(dayBuffer);
 
+  dest = displayDay;
   //Serial.println(displayDay);
-  updateText(displayDay, dayText);
-
+  //updateText(displayDay, dayText);
 }
-
-
-
