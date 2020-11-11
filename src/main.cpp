@@ -217,7 +217,7 @@ void render()
     int widthOldTempX = tft.textWidth(tempText.oldStr);
     int widthTempX = tft.textWidth(tempText.str);
 
-    tft.fillRect(110 - widthTempX / 2, 69, widthOldTempX, tft.fontHeight(), TFT_BLACK);
+    tft.fillRect(110 - widthOldTempX / 2, 69, widthOldTempX, tft.fontHeight(), TFT_BLACK);
     tft.drawString(tempText.str, 110 - widthTempX / 2, 69);
   }
 
@@ -231,7 +231,7 @@ void render()
     int widthOldCondX = tft.textWidth(condText.oldStr);
     int widthCondX = tft.textWidth(condText.str);
 
-    tft.fillRect(362 - widthCondX / 2, 154, widthOldCondX, tft.fontHeight(), TFT_BLACK);
+    tft.fillRect(362 - widthOldCondX / 2, 154, widthOldCondX, tft.fontHeight(), TFT_BLACK);
     tft.drawString(condText.str, 362 - widthCondX / 2, 154);
   }
 
@@ -258,7 +258,7 @@ void render()
     int widthOldWindDeg = tft.textWidth(windDegText.oldStr);
     int widthWindDeg = tft.textWidth(windDegText.str);
 
-    tft.fillRect(241 - widthOldWindDeg / 2, 16, widthOldWindDeg, tft.fontHeight(), TFT_BLACK);
+    tft.fillRect(362 - widthOldWindDeg / 2, 26, widthOldWindDeg, tft.fontHeight(), TFT_BLACK);
     tft.drawString(windDegText.str, 362 - widthWindDeg / 2, 26);
   }
 
